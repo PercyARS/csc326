@@ -70,11 +70,13 @@ class crawler(object):
             # if persistent not needed
             c.execute('''DROP TABLE IF EXISTS Document''')
             c.execute('''DROP TABLE IF EXISTS Lexicon''')
-
+            c.execute('''DROP TABLE IF EXISTS InvertIndex''')
             c.execute('''CREATE TABLE IF NOT EXISTS Document
              (Id INTEGER PRIMARY KEY AUTOINCREMENT, doc_url TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS Lexicon
              (Id INTEGER PRIMARY KEY AUTOINCREMENT, words TEXT UNIQUE)''')
+            c.execute('''CREATE TABLE IF NOT EXISTS InvertIndex
+             (WordId INTEGER , DocId INTEGER, PRIMARY KEY (WordId, DocId))''')
 
         # functions to call when entering and exiting specific tags
         self._enter = defaultdict(lambda *a, **ka: self._visit_ignore)
@@ -232,7 +234,14 @@ class crawler(object):
         # TODO: knowing self._curr_doc_id and the list of all words and their
         #       font sizes (in self._curr_words), add all the words into the
         #       database for this document
-        print "    num words="+ str(len(self._curr_words))
+
+        # insert (wordid, docid) into db InvertIndex table
+        with self._db_conn:
+            c = self._db_conn.cursor()
+            for word_id, font in self._curr_words:
+                row = (word_id, self._curr_doc_id)
+                c.execute("INSERT OR IGNORE INTO InvertIndex VALUES (?,?)", row)
+        print "    num words=" + str(len(self._curr_words))
 
     def _increase_font_factor(self, factor):
         """Increase/decrease the current font size."""
@@ -310,6 +319,10 @@ class crawler(object):
             # text (text, cdata, comments, etc.)
             else:
                 self._add_text(tag)
+
+    def get_inverted_index(self):
+        """Return all the inverted index relationship in a dictionary"""
+        
 
     def crawl(self, depth=2, timeout=3):
         """Crawl the web!"""
