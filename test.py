@@ -21,16 +21,24 @@ with _db_conn:
     for tuples in rows:
         _word_id = tuples[0]
         _doc_id = tuples[1]
-        # if this word id doesn't exist in the dictionary yet
+        c.execute('SELECT words FROM Lexicon WHERE Id=?', (_word_id,))
+        _word = c.fetchone()[0]
+        #print "word id is: "
+        print _word_id
+        #print "word  is: " + _word
+        c.execute('SELECT doc_url FROM Document WHERE Id=?', (_doc_id,))
+        _url = c.fetchone()[0]
+        #print "doc id is: "
+        #print _doc_id
+        #print "url  is: " + _url
+        # if this word doesn't exist in the dictionary yet
         if _word_id != last_WordId:
-            dict[_word_id] = set([_doc_id])
-            #print dict[_word_id]
+            print "word is "+_word
+            dict[_word] = set([_url])
         else:
-            temp = dict[_word_id]
-            temp.add(_doc_id)
-            dict[_word_id] = temp
-            #print "duplicate wordid:!" + _word_id
-            #tempSet = dict[_word_id].add(_doc_id)
-            #dict[_word_id] = tempSet
+            print "word is "+_word
+            temp = dict[_word]
+            temp.add(_url)
+            dict[_word] = temp
         last_WordId = _word_id
     print dict

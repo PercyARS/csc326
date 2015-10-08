@@ -335,17 +335,37 @@ class crawler(object):
                 # if this word id doesn't exist in the dictionary yet
                 if _word_id != last_WordId:
                     dict[_word_id] = set([_doc_id])
-                    #print dict[_word_id]
                 else:
                     temp = dict[_word_id]
                     temp.add(_doc_id)
                     dict[_word_id] = temp
-                    #print "duplicate wordid:!" + _word_id
-                    #tempSet = dict[_word_id].add(_doc_id)
-                    #dict[_word_id] = tempSet
                 last_WordId = _word_id
         return dict
 
+    def get_resolved_inverted_index(self):
+        """Return all the resolved inverted index relationship in a dictionary"""
+        dict = {}
+        with self._db_conn:
+            c = self._db_conn.cursor()
+            c.execute('SELECT * FROM InvertIndex ORDER BY WordId')
+            rows = c.fetchall()
+            last_WordId = 0
+            for tuples in rows:
+                _word_id = tuples[0]
+                _doc_id = tuples[1]
+                c.execute('SELECT words FROM Lexicon WHERE Id=?', (_word_id,))
+                _word = c.fetchone()[0]
+                c.execute('SELECT doc_url FROM Document WHERE Id=?', (_doc_id,))
+                _url = c.fetchone()[0]
+                # if this word doesn't exist in the dictionary yet
+                if _word_id != last_WordId:
+                    dict[_word] = set([_url])
+                else:
+                    temp = dict[_word]
+                    temp.add(_url)
+                    dict[_word] = temp
+                last_WordId = _word_id
+        return dict
 
 
     def crawl(self, depth=2, timeout=3):
@@ -397,23 +417,23 @@ if __name__ == "__main__":
     bot.crawl(depth=1)
     #test db content
 
-    c = bot._db_conn.cursor()
-    c.execute("SELECT * FROM Document")
-    rows = c.fetchall()
+    #c = bot._db_conn.cursor()
+    #c.execute("SELECT * FROM Document")
+    #rows = c.fetchall()
     #print "Document Table"
     #for row in rows:
     #print row
 
-    c.execute("SELECT * FROM Lexicon")
-    rows = c.fetchall()
+    #c.execute("SELECT * FROM Lexicon")
+    #rows = c.fetchall()
     #print "Lexicon Table"
     #for row in rows:
     #print row
 
-    c.execute("SELECT * FROM InvertIndex ORDER BY WordId")
-    rows = c.fetchall()
+    #c.execute("SELECT * FROM InvertIndex ORDER BY WordId")
+    #rows = c.fetchall()
     #print "InvertIndex Table"
     #for row in rows:
         #print row
-    bot.get_inverted_index()
+    #bot.get_inverted_index()
 
