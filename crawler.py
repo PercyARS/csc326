@@ -165,7 +165,8 @@ class crawler(object):
             c = self._db_conn.cursor()
             c.execute("INSERT OR IGNORE INTO Lexicon (words) VALUES (?)", (word,))
             c.execute('SELECT Id FROM Lexicon WHERE words=?', (word,))
-            ret = c.fetchone()
+            # [0] because the result is in a tuple
+            ret = c.fetchone()[0]
         return ret
     
     def word_id(self, word):
@@ -238,9 +239,9 @@ class crawler(object):
         # insert (wordid, docid) into db InvertIndex table
         with self._db_conn:
             c = self._db_conn.cursor()
-            for word_id, font in self._curr_words:
-                row = (word_id, self._curr_doc_id)
-                c.execute("INSERT OR IGNORE INTO InvertIndex VALUES (?,?)", row)
+            for word_tuple in self._curr_words:
+                word_id = word_tuple[0]
+                c.execute("INSERT OR IGNORE INTO InvertIndex (WordId, DocId) VALUES (?,?)", (word_id, self._curr_doc_id))
         print "    num words=" + str(len(self._curr_words))
 
     def _increase_font_factor(self, factor):
@@ -355,9 +356,9 @@ class crawler(object):
                 self._font_size = 0
                 self._curr_words = [ ]
                 self._index_document(soup)
+
                 self._add_words_to_document()
                 print "    url="+repr(self._curr_url)
-
                 #test db content
                 with self._db_conn:
                     c = self._db_conn.cursor()
@@ -370,6 +371,12 @@ class crawler(object):
                     c.execute("SELECT * FROM Lexicon")
                     rows = c.fetchall()
                     print "Lexicon Table"
+                    for row in rows:
+                        print row
+
+                    c.execute("SELECT * FROM InvertIndex")
+                    rows = c.fetchall()
+                    print "InvertIndex Table"
                     for row in rows:
                         print row
 
