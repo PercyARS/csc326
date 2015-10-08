@@ -323,6 +323,29 @@ class crawler(object):
 
     def get_inverted_index(self):
         """Return all the inverted index relationship in a dictionary"""
+        dict = {}
+        with self._db_conn:
+            c = self._db_conn.cursor()
+            c.execute('SELECT * FROM InvertIndex ORDER BY WordId')
+            rows = c.fetchall()
+            last_WordId = 0
+            for tuples in rows:
+                _word_id = tuples[0]
+                _doc_id = tuples[1]
+                # if this word id doesn't exist in the dictionary yet
+                if _word_id != last_WordId:
+                    dict[_word_id] = set([_doc_id])
+                    #print dict[_word_id]
+                else:
+                    temp = dict[_word_id]
+                    temp.add(_doc_id)
+                    dict[_word_id] = temp
+                    #print "duplicate wordid:!" + _word_id
+                    #tempSet = dict[_word_id].add(_doc_id)
+                    #dict[_word_id] = tempSet
+                last_WordId = _word_id
+        return dict
+
 
 
     def crawl(self, depth=2, timeout=3):
@@ -359,26 +382,7 @@ class crawler(object):
 
                 self._add_words_to_document()
                 print "    url="+repr(self._curr_url)
-                #test db content
-                with self._db_conn:
-                    c = self._db_conn.cursor()
-                    c.execute("SELECT * FROM Document")
-                    rows = c.fetchall()
-                    print "Document Table"
-                    for row in rows:
-                        print row
 
-                    c.execute("SELECT * FROM Lexicon")
-                    rows = c.fetchall()
-                    print "Lexicon Table"
-                    for row in rows:
-                        print row
-
-                    c.execute("SELECT * FROM InvertIndex")
-                    rows = c.fetchall()
-                    print "InvertIndex Table"
-                    for row in rows:
-                        print row
 
             except Exception as e:
                 print e
@@ -391,4 +395,25 @@ if __name__ == "__main__":
     # create a new db connection
     bot = crawler(None, "urls.txt")
     bot.crawl(depth=1)
+    #test db content
+
+    c = bot._db_conn.cursor()
+    c.execute("SELECT * FROM Document")
+    rows = c.fetchall()
+    #print "Document Table"
+    #for row in rows:
+    #print row
+
+    c.execute("SELECT * FROM Lexicon")
+    rows = c.fetchall()
+    #print "Lexicon Table"
+    #for row in rows:
+    #print row
+
+    c.execute("SELECT * FROM InvertIndex ORDER BY WordId")
+    rows = c.fetchall()
+    #print "InvertIndex Table"
+    #for row in rows:
+        #print row
+    bot.get_inverted_index()
 
