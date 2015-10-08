@@ -322,7 +322,7 @@ class crawler(object):
 
     def get_inverted_index(self):
         """Return all the inverted index relationship in a dictionary"""
-        
+
 
     def crawl(self, depth=2, timeout=3):
         """Crawl the web!"""
