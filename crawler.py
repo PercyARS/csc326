@@ -1,4 +1,3 @@
-
 # Copyright (C) 2011 by Peter Goodman
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,9 +26,6 @@ import re
 import sqlite3
 
 
-
-
-
 def attr(elem, attr):
     """An html attribute from an html element. E.g. <a href="">, then
     attr(elem, "href") will get the href or an empty string."""
@@ -38,7 +34,9 @@ def attr(elem, attr):
     except:
         return ""
 
+
 WORD_SEPARATORS = re.compile(r'\s|\n|\r|\t|[^a-zA-Z0-9\-_]')
+
 
 class crawler(object):
     """Represents 'Googlebot'. Populates a database by crawling and indexing
@@ -52,25 +50,27 @@ class crawler(object):
         and with the file containing the list of seed URLs to begin indexing."""
 
         # ids for the next iteration
-        self._url_queue = [ ]
-        self._doc_id_cache = { }
-        self._word_id_cache = { }
+        self._url_queue = []
+        self._doc_id_cache = {}
+        self._word_id_cache = {}
 
-        # initialize the db connection in the class
+        # initialize the db connection in the crawler class
         self._db_conn = None
         try:
             self._db_conn = sqlite3.connect('backend.db')
         except sqlite3.Error, e:
             print "Error %s:" % e.args[0]
 
-        # set up the tables for db
+        # Set up tables for the db
         with self._db_conn:
             c = self._db_conn.cursor()
 
-            # if persistent not needed
+            # if persistence not required
             c.execute('''DROP TABLE IF EXISTS Document''')
             c.execute('''DROP TABLE IF EXISTS Lexicon''')
             c.execute('''DROP TABLE IF EXISTS InvertIndex''')
+
+            # create new tables if then they don't exist already
             c.execute('''CREATE TABLE IF NOT EXISTS Document
              (Id INTEGER PRIMARY KEY AUTOINCREMENT, doc_url TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS Lexicon
@@ -117,8 +117,8 @@ class crawler(object):
 
         # never go in and parse these tags
         self._ignored_tags = set([
-            'meta', 'script', 'link', 'meta', 'embed', 'iframe', 'frame', 
-            'noscript', 'object', 'svg', 'canvas', 'applet', 'frameset', 
+            'meta', 'script', 'link', 'meta', 'embed', 'iframe', 'frame',
+            'noscript', 'object', 'svg', 'canvas', 'applet', 'frameset',
             'textarea', 'style', 'area', 'map', 'base', 'basefont', 'param',
         ])
 
@@ -152,8 +152,8 @@ class crawler(object):
         ret = -1
         with self._db_conn:
             c = self._db_conn.cursor()
-            # we can do this coz Document has auto incremented ID
             c.execute("INSERT INTO Document (doc_url) VALUES (?)", (url,))
+            # since the table has auto-incrementing IDs
             ret = c.lastrowid
         return ret
 
@@ -165,10 +165,10 @@ class crawler(object):
             c = self._db_conn.cursor()
             c.execute("INSERT OR IGNORE INTO Lexicon (words) VALUES (?)", (word,))
             c.execute('SELECT Id FROM Lexicon WHERE words=?', (word,))
-            # [0] because the result is in a tuple
+            # [0] because the fetched result is in a tuple
             ret = c.fetchone()[0]
         return ret
-    
+
     def word_id(self, word):
         """Get the word id of some specific word."""
         if word in self._word_id_cache:
@@ -177,7 +177,7 @@ class crawler(object):
         word_id = self._insert_word(word)
         self._word_id_cache[word] = word_id
         return word_id
-    
+
     def document_id(self, url):
         """Get the document id for some url."""
         if url in self._doc_id_cache:
@@ -186,7 +186,7 @@ class crawler(object):
         doc_id = self._insert_document(url)
         self._doc_id_cache[url] = doc_id
         return doc_id
-    
+
     def _fix_url(self, curr_url, rel):
         """Given a url and either something relative to that url or another url,
         get a properly parsed url."""
@@ -194,7 +194,7 @@ class crawler(object):
         rel_l = rel.lower()
         if rel_l.startswith("http://") or rel_l.startswith("https://"):
             curr_url, rel = rel, ""
-            
+
         # compute the new url based on import 
         curr_url = urlparse.urldefrag(curr_url)[0]
         parsed_url = urlparse.urlparse(curr_url)
@@ -211,11 +211,11 @@ class crawler(object):
         print "document title=" + repr(title_text)
 
         # TODO update document title for document id self._curr_doc_id
-    
+
     def _visit_a(self, elem):
         """Called when visiting <a> tags."""
 
-        dest_url = self._fix_url(self._curr_url, attr(elem,"href"))
+        dest_url = self._fix_url(self._curr_url, attr(elem, "href"))
 
         # print "href="+repr(dest_url), \
         #      "title="+repr(attr(elem,"title")), \
@@ -224,13 +224,13 @@ class crawler(object):
 
         # add the just found URL to the url queue
         self._url_queue.append((dest_url, self._curr_depth))
-        
+
         # add a link entry into the database from the current document to the
         # other document
         self.add_link(self._curr_doc_id, self.document_id(dest_url))
 
         # TODO add title/alt/text to index for destination url
-    
+
     def _add_words_to_document(self):
         # TODO: knowing self._curr_doc_id and the list of all words and their
         #       font sizes (in self._curr_words), add all the words into the
@@ -241,15 +241,18 @@ class crawler(object):
             c = self._db_conn.cursor()
             for word_tuple in self._curr_words:
                 word_id = word_tuple[0]
-                c.execute("INSERT OR IGNORE INTO InvertIndex (WordId, DocId) VALUES (?,?)", (word_id, self._curr_doc_id))
+                c.execute("INSERT OR IGNORE INTO InvertIndex (WordId, DocId) VALUES (?,?)",
+                          (word_id, self._curr_doc_id))
         print "    num words=" + str(len(self._curr_words))
 
     def _increase_font_factor(self, factor):
         """Increase/decrease the current font size."""
+
         def increase_it(elem):
             self._font_size += factor
+
         return increase_it
-    
+
     def _visit_ignore(self, elem):
         """Ignore visiting this type of tag"""
         pass
@@ -263,14 +266,14 @@ class crawler(object):
             if word in self._ignored_words:
                 continue
             self._curr_words.append((self.word_id(word), self._font_size))
-        
+
     def _text_of(self, elem):
         """Get the text inside some element without any tags."""
         if isinstance(elem, Tag):
-            text = [ ]
+            text = []
             for sub_elem in elem:
                 text.append(self._text_of(sub_elem))
-            
+
             return " ".join(text)
         else:
             return elem.string
@@ -279,14 +282,15 @@ class crawler(object):
         """Traverse the document in depth-first order and call functions when entering
         and leaving tags. When we come across some text, add it into the index. This
         handles ignoring tags that we have no business looking at."""
+
         class DummyTag(object):
             next = False
             name = ''
-        
+
         class NextTag(object):
             def __init__(self, obj):
                 self.next = obj
-        
+
         tag = soup.html
         stack = [DummyTag(), soup.html]
 
@@ -310,9 +314,9 @@ class crawler(object):
                         self._exit[stack[-1].name.lower()](stack[-1])
                         stack.pop()
                         tag = NextTag(tag.parent.nextSibling)
-                    
+
                     continue
-                
+
                 # enter the tag
                 self._enter[tag_name](tag)
                 stack.append(tag)
@@ -323,33 +327,37 @@ class crawler(object):
 
     def get_inverted_index(self):
         """Return all the inverted index relationship in a dictionary"""
-        dict = {}
+        ret = {}
         with self._db_conn:
             c = self._db_conn.cursor()
+            # retrieve all the table entries in the format ((wordId, docId)...)
+            # Order by wordId in the result
             c.execute('SELECT * FROM InvertIndex ORDER BY WordId')
             rows = c.fetchall()
-            last_WordId = 0
+            # keep track of last wordId searched to reduce the workloads
+            last_word_id = 0
             for tuples in rows:
                 _word_id = tuples[0]
                 _doc_id = tuples[1]
                 # if this word id doesn't exist in the dictionary yet
-                if _word_id != last_WordId:
-                    dict[_word_id] = set([_doc_id])
+                if _word_id != last_word_id:
+                    ret[_word_id] = set([_doc_id])
                 else:
-                    temp = dict[_word_id]
+                    # if it does, then add to the existing value of hat wordId
+                    temp = ret[_word_id]
                     temp.add(_doc_id)
-                    dict[_word_id] = temp
-                last_WordId = _word_id
-        return dict
+                    ret[_word_id] = temp
+                last_word_id = _word_id
+        return ret
 
     def get_resolved_inverted_index(self):
         """Return all the resolved inverted index relationship in a dictionary"""
-        dict = {}
+        ret = {}
         with self._db_conn:
             c = self._db_conn.cursor()
             c.execute('SELECT * FROM InvertIndex ORDER BY WordId')
             rows = c.fetchall()
-            last_WordId = 0
+            last_word_id = 0
             for tuples in rows:
                 _word_id = tuples[0]
                 _doc_id = tuples[1]
@@ -358,15 +366,14 @@ class crawler(object):
                 c.execute('SELECT doc_url FROM Document WHERE Id=?', (_doc_id,))
                 _url = c.fetchone()[0]
                 # if this word doesn't exist in the dictionary yet
-                if _word_id != last_WordId:
-                    dict[_word] = set([_url])
+                if _word_id != last_word_id:
+                    ret[_word] = set([_url])
                 else:
-                    temp = dict[_word]
+                    temp = ret[_word]
                     temp.add(_url)
-                    dict[_word] = temp
-                last_WordId = _word_id
-        return dict
-
+                    ret[_word] = temp
+                last_word_id = _word_id
+        return ret
 
     def crawl(self, depth=2, timeout=3):
         """Crawl the web!"""
@@ -386,8 +393,8 @@ class crawler(object):
             if doc_id in seen:
                 continue
 
-            seen.add(doc_id) # mark this document as haven't been visited
-            
+            seen.add(doc_id)  # mark this document as haven't been visited
+
             socket = None
             try:
                 socket = urllib2.urlopen(url, timeout=timeout)
@@ -397,11 +404,11 @@ class crawler(object):
                 self._curr_url = url
                 self._curr_doc_id = doc_id
                 self._font_size = 0
-                self._curr_words = [ ]
+                self._curr_words = []
                 self._index_document(soup)
 
                 self._add_words_to_document()
-                print "    url="+repr(self._curr_url)
+                print "    url=" + repr(self._curr_url)
 
 
             except Exception as e:
@@ -411,29 +418,33 @@ class crawler(object):
                 if socket:
                     socket.close()
 
+
 if __name__ == "__main__":
     # create a new db connection
     bot = crawler(None, "urls.txt")
     bot.crawl(depth=1)
-    #test db content
 
-    #c = bot._db_conn.cursor()
-    #c.execute("SELECT * FROM Document")
-    #rows = c.fetchall()
-    #print "Document Table"
-    #for row in rows:
-    #print row
+    test = bot.get_inverted_index()
+    print test
+    test = bot.get_resolved_inverted_index()
+    print test
+    # test db content
+    # c = bot._db_conn.cursor()
+    # c.execute("SELECT * FROM Document")
+    # rows = c.fetchall()
+    # print "Document Table"
+    # for row in rows:
+    # print row
 
-    #c.execute("SELECT * FROM Lexicon")
-    #rows = c.fetchall()
-    #print "Lexicon Table"
-    #for row in rows:
-    #print row
+    # c.execute("SELECT * FROM Lexicon")
+    # rows = c.fetchall()
+    # print "Lexicon Table"
+    # for row in rows:
+    # print row
 
-    #c.execute("SELECT * FROM InvertIndex ORDER BY WordId")
-    #rows = c.fetchall()
-    #print "InvertIndex Table"
-    #for row in rows:
-        #print row
-    #bot.get_inverted_index()
-
+    # c.execute("SELECT * FROM InvertIndex ORDER BY WordId")
+    # rows = c.fetchall()
+    # print "InvertIndex Table"
+    # for row in rows:
+    # print row
+    # bot.get_inverted_index()
