@@ -428,23 +428,3 @@ if __name__ == "__main__":
     print test
     test = bot.get_resolved_inverted_index()
     print test
-    # test db content
-    # c = bot._db_conn.cursor()
-    # c.execute("SELECT * FROM Document")
-    # rows = c.fetchall()
-    # print "Document Table"
-    # for row in rows:
-    # print row
-
-    # c.execute("SELECT * FROM Lexicon")
-    # rows = c.fetchall()
-    # print "Lexicon Table"
-    # for row in rows:
-    # print row
-
-    # c.execute("SELECT * FROM InvertIndex ORDER BY WordId")
-    # rows = c.fetchall()
-    # print "InvertIndex Table"
-    # for row in rows:
-    # print row
-    # bot.get_inverted_index()
