@@ -70,6 +70,8 @@ class crawler(object):
             c.execute('''DROP TABLE IF EXISTS Lexicon''')
             c.execute('''DROP TABLE IF EXISTS InvertIndex''')
 
+
+            # TODO NEW TABLE FOR TITLE AND SHORT DESCRIP
             # create new tables if then they don't exist already
             c.execute('''CREATE TABLE IF NOT EXISTS Document
              (Id INTEGER PRIMARY KEY AUTOINCREMENT, doc_url TEXT)''')
@@ -424,10 +426,10 @@ if __name__ == "__main__":
     bot = crawler(None, "urls.txt")
     bot.crawl(depth=1)
 
-    test = bot.get_inverted_index()
-    print test
-    test = bot.get_resolved_inverted_index()
-    print test
+    # test = bot.get_inverted_index()
+    # print test
+    # test = bot.get_resolved_inverted_index()
+    # print test
     # test db content
     # c = bot._db_conn.cursor()
     # c.execute("SELECT * FROM Document")
